@@ -272,7 +272,7 @@ function kube-up {
     openssl req -new \
         -key ${KUBE_TEMP}/server.key \
         -out ${KUBE_TEMP}/server.csr \
-        -subj "/CN=server"
+        -subj "/CN=${AZ_CS}"
     openssl x509 -req -days 1095 \
         -in ${KUBE_TEMP}/server.csr \
         -CA ${KUBE_TEMP}/ca.crt \
@@ -336,7 +336,7 @@ function kube-up {
         -n $MASTER_NAME \
         -l "$AZ_LOCATION" \
         -t $AZ_SSH_CERT \
-        -e 22000 -P \
+        -e 22000  \
         -d ${KUBE_TEMP}/master-start.sh \
         -b $AZ_SUBNET \
         $AZ_CS $AZ_IMAGE $USER
@@ -363,7 +363,7 @@ function kube-up {
             -n ${MINION_NAMES[$i]} \
             -l "$AZ_LOCATION" \
             -t $AZ_SSH_CERT \
-            -e ${ssh_ports[$i]} -P \
+            -e ${ssh_ports[$i]} \
             -d ${KUBE_TEMP}/minion-start-${i}.sh \
             -b $AZ_SUBNET \
             $AZ_CS $AZ_IMAGE $USER
