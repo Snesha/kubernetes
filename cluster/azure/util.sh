@@ -19,6 +19,8 @@
 # Use the config file specified in $KUBE_CONFIG_FILE, or default to
 # config-default.sh.
 
+set -x
+
 KUBE_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${KUBE_ROOT}/cluster/azure/${KUBE_CONFIG_FILE-"config-default.sh"}"
 source "${KUBE_ROOT}/cluster/common.sh"
@@ -274,39 +276,39 @@ function kube-up {
     local htpasswd
     htpasswd=$(cat "${KUBE_TEMP}/htpasswd")
 
-    # Generate openvpn certs
-    echo "--> Generating openvpn certs"
-    echo 01 > ${KUBE_TEMP}/ca.srl
-    openssl genrsa -out ${KUBE_TEMP}/ca.key
-    openssl req -new -x509 -days 1095 \
-        -key ${KUBE_TEMP}/ca.key \
-        -out ${KUBE_TEMP}/ca.crt \
-        -subj "/CN=openvpn-ca"
-    openssl genrsa -out ${KUBE_TEMP}/server.key
-    openssl req -new \
-        -key ${KUBE_TEMP}/server.key \
-        -out ${KUBE_TEMP}/server.csr \
-        -subj "/CN=${AZ_CS}"
-    openssl x509 -req -days 1095 \
-        -in ${KUBE_TEMP}/server.csr \
-        -CA ${KUBE_TEMP}/ca.crt \
-        -CAkey ${KUBE_TEMP}/ca.key \
-        -CAserial ${KUBE_TEMP}/ca.srl \
-        -out ${KUBE_TEMP}/server.crt
-    for (( i=0; i<${#MINION_NAMES[@]}; i++)); do
-        openssl genrsa -out ${KUBE_TEMP}/${MINION_NAMES[$i]}.key
-        openssl req -new \
-            -key ${KUBE_TEMP}/${MINION_NAMES[$i]}.key \
-            -out ${KUBE_TEMP}/${MINION_NAMES[$i]}.csr \
-            -subj "/CN=${MINION_NAMES[$i]}"
-        openssl x509 -req -days 1095 \
-            -in ${KUBE_TEMP}/${MINION_NAMES[$i]}.csr \
-            -CA ${KUBE_TEMP}/ca.crt \
-            -CAkey ${KUBE_TEMP}/ca.key \
-            -CAserial ${KUBE_TEMP}/ca.srl \
-            -out ${KUBE_TEMP}/${MINION_NAMES[$i]}.crt
-    done
-
+#    # Generate openvpn certs
+#    echo "--> Generating openvpn certs"
+#    echo 01 > ${KUBE_TEMP}/ca.srl
+#    openssl genrsa -out ${KUBE_TEMP}/ca.key
+#    openssl req -new -x509 -days 1095 \
+#        -key ${KUBE_TEMP}/ca.key \
+#        -out ${KUBE_TEMP}/ca.crt \
+#        -subj "/CN=openvpn-ca"
+#    openssl genrsa -out ${KUBE_TEMP}/server.key
+#    openssl req -new \
+#        -key ${KUBE_TEMP}/server.key \
+#        -out ${KUBE_TEMP}/server.csr \
+#        -subj "/CN=${AZ_CS}"
+#    openssl x509 -req -days 1095 \
+#        -in ${KUBE_TEMP}/server.csr \
+#        -CA ${KUBE_TEMP}/ca.crt \
+#        -CAkey ${KUBE_TEMP}/ca.key \
+#        -CAserial ${KUBE_TEMP}/ca.srl \
+#        -out ${KUBE_TEMP}/server.crt
+#    for (( i=0; i<${#MINION_NAMES[@]}; i++)); do
+#        openssl genrsa -out ${KUBE_TEMP}/${MINION_NAMES[$i]}.key
+#        openssl req -new \
+#            -key ${KUBE_TEMP}/${MINION_NAMES[$i]}.key \
+#            -out ${KUBE_TEMP}/${MINION_NAMES[$i]}.csr \
+#            -subj "/CN=${MINION_NAMES[$i]}"
+#        openssl x509 -req -days 1095 \
+#            -in ${KUBE_TEMP}/${MINION_NAMES[$i]}.csr \
+#            -CA ${KUBE_TEMP}/ca.crt \
+#            -CAkey ${KUBE_TEMP}/ca.key \
+#            -CAserial ${KUBE_TEMP}/ca.srl \
+#            -out ${KUBE_TEMP}/${MINION_NAMES[$i]}.crt
+#    done
+#
     # Build up start up script for master
     echo "--> Building up start up script for master"
     (
@@ -314,9 +316,10 @@ function kube-up {
         echo "CA_CRT=\"$(cat ${KUBE_TEMP}/ca.crt)\""
         echo "SERVER_CRT=\"$(cat ${KUBE_TEMP}/server.crt)\""
         echo "SERVER_KEY=\"$(cat ${KUBE_TEMP}/server.key)\""
+	echo "apt-get upgrade pollinate -y --force-yes -qq"
         echo "mkdir -p /var/cache/kubernetes-install"
         echo "cd /var/cache/kubernetes-install"
-        echo "readonly MASTER_NAME='${MASTER_NAME}'"
+	echo "readonly MASTER_NAME='${MASTER_NAME}'"
         echo "readonly INSTANCE_PREFIX='${INSTANCE_PREFIX}'"
         echo "readonly NODE_INSTANCE_PREFIX='${INSTANCE_PREFIX}-minion'"
         echo "readonly SERVER_BINARY_TAR_URL='${SERVER_BINARY_TAR_URL}'"
@@ -350,7 +353,7 @@ function kube-up {
         -n $MASTER_NAME \
         -l "$AZ_LOCATION" \
         -t $AZ_SSH_CERT \
-        -e 22000 -P \
+        -e 22000  \
         -d ${KUBE_TEMP}/master-start.sh \
         -b $AZ_SUBNET \
         $AZ_CS $AZ_IMAGE $USER
@@ -377,7 +380,7 @@ function kube-up {
             -n ${MINION_NAMES[$i]} \
             -l "$AZ_LOCATION" \
             -t $AZ_SSH_CERT \
-            -e ${ssh_ports[$i]} -P \
+            -e ${ssh_ports[$i]}  \
             -d ${KUBE_TEMP}/minion-start-${i}.sh \
             -b $AZ_SUBNET \
             $AZ_CS $AZ_IMAGE $USER
@@ -397,7 +400,7 @@ function kube-up {
     echo "  up."
     echo
 
-    until curl --insecure --user "${KUBE_USER}:${KUBE_PASSWORD}" --max-time 5 \
+    until curl -k --user "${KUBE_USER}:${KUBE_PASSWORD}" --max-time 5 \
         --fail --output /dev/null --silent "https://${KUBE_MASTER_IP}/healthz"; do
         printf "."
         sleep 2
