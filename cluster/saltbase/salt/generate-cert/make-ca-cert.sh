@@ -37,7 +37,7 @@ if [ "$cert_ip" == "_use_aws_external_ip_" ]; then
 fi
 
 if [ "$cert_ip" == "_use_azure_dns_name_" ]; then
-  cert_ip=$(uname -n | awk -F. '{ print $2 }').cloudapp.net
+  cert_ip=$(curl ifconfig.me)
   use_cn=true
 fi
 
@@ -68,8 +68,14 @@ tar xzf easy-rsa.tar.gz > /dev/null 2>&1
 cd easy-rsa-master/easyrsa3
 ./easyrsa init-pki > /dev/null 2>&1
 ./easyrsa --batch "--req-cn=$cert_ip@`date +%s`" build-ca nopass > /dev/null 2>&1
-if [ $use_cn = "true" ]; then
+./easyrsa gen-dh > /dev/null 2>&1
+if [ $use_cn == "true" ]; then
     ./easyrsa build-server-full $cert_ip nopass > /dev/null 2>&1
+    cp -p pki/issued/$cert_ip.crt /etc/openvpn/server.crt > /dev/null 2>&1
+    cp -p pki/private/$cert_ip.key /etc/openvpn/server.key > /dev/null 2>&1
+    cp -p pki/private/ca.key /etc/openvpn > /dev/null 2>&1
+    cp -p pki/ca.crt /etc/openvpn > /dev/null 2>&1
+    cp -p pki/dh.pem /etc/openvpn/dh2048.pem > /dev/null 2>&1
     cp -p pki/issued/$cert_ip.crt "${cert_dir}/server.cert" > /dev/null 2>&1
     cp -p pki/private/$cert_ip.key "${cert_dir}/server.key" > /dev/null 2>&1
 else
