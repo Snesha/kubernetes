@@ -17,11 +17,6 @@
     - makedirs: True
 {% endfor %}
 
-openssl dhparam -out /etc/openvpn/dh1024.pem 1024:
-  cmd.run:
-    - creates: /etc/openvpn/dh1024.pem
-    - unless: file /etc/openvpn/dh1024.pem
-
 openvpn:
   pkg:
     - latest

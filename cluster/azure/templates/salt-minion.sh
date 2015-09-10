@@ -48,7 +48,26 @@ grains:
   cbr-string: $cbrstring
 EOF
 
+if [[ -n "${DOCKER_OPTS}" ]]; then
+  cat <<EOF >>/etc/salt/minion.d/grains.conf
+  docker_opts: '$(echo "$DOCKER_OPTS" | sed -e "s/'/''/g")'
+EOF
+fi
+
+if [[ -n "${DOCKER_ROOT}" ]]; then
+  cat <<EOF >>/etc/salt/minion.d/grains.conf
+  docker_root: '$(echo "$DOCKER_ROOT" | sed -e "s/'/''/g")'
+EOF
+fi
+
+if [[ -n "${KUBELET_ROOT}" ]]; then
+  cat <<EOF >>/etc/salt/minion.d/grains.conf
+  kubelet_root: '$(echo "$KUBELET_ROOT" | sed -e "s/'/''/g")'
+EOF
+fi
+
 install-salt
+service salt-minion start
 
 # Wait a few minutes and trigger another Salt run to better recover from
 # any transient errors.

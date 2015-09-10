@@ -26,5 +26,3 @@ service_cluster_ip_range: $SERVICE_CLUSTER_IP_RANGE
 admission_control: '$(echo "$ADMISSION_CONTROL" | sed -e "s/'/''/g")'
 EOF
 
-mkdir -p /srv/salt-overlay/salt/nginx
-echo $MASTER_HTPASSWD > /srv/salt-overlay/salt/nginx/htpasswd

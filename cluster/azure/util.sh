@@ -25,6 +25,8 @@ KUBE_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${KUBE_ROOT}/cluster/azure/${KUBE_CONFIG_FILE-"config-default.sh"}"
 source "${KUBE_ROOT}/cluster/common.sh"
 
+ALLOCATE_NODE_CIDRS=true
+
 function azure_call {
     local -a params=()
     local param

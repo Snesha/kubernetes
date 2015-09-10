@@ -24,6 +24,29 @@ grains:
     - kubernetes-master
   cloud: azure
 EOF
+if [[ -n "${DOCKER_OPTS}" ]]; then
+  cat <<EOF >>/etc/salt/minion.d/grains.conf
+  docker_opts: '$(echo "$DOCKER_OPTS" | sed -e "s/'/''/g")'
+EOF
+fi
+
+if [[ -n "${DOCKER_ROOT}" ]]; then
+  cat <<EOF >>/etc/salt/minion.d/grains.conf
+  docker_root: '$(echo "$DOCKER_ROOT" | sed -e "s/'/''/g")'
+EOF
+fi
+
+if [[ -n "${KUBELET_ROOT}" ]]; then
+  cat <<EOF >>/etc/salt/minion.d/grains.conf
+  kubelet_root: '$(echo "$KUBELET_ROOT" | sed -e "s/'/''/g")'
+EOF
+fi
+
+if [[ -n "${MASTER_EXTRA_SANS}" ]]; then
+  cat <<EOF >>/etc/salt/minion.d/grains.conf
+  master_extra_sans: '$(echo "$MASTER_EXTRA_SANS" | sed -e "s/'/''/g")'
+EOF
+fi
 
 # Auto accept all keys from minions that try to join
 mkdir -p /etc/salt/master.d
@@ -37,9 +60,6 @@ reactor:
   - 'salt/minion/*/start':
     - /srv/reactor/highstate-new.sls
 EOF
-
-mkdir -p /srv/salt/nginx
-echo $MASTER_HTPASSWD > /srv/salt/nginx/htpasswd
 
 mkdir -p /etc/openvpn
 umask=$(umask)
@@ -60,6 +80,9 @@ log_level_logfile: debug
 EOF
 
 install-salt --master
+
+service salt-master start
+service salt-minion start
 
 # Wait a few minutes and trigger another Salt run to better recover from
 # any transient errors.

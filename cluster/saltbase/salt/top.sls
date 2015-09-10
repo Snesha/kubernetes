@@ -47,7 +47,7 @@ base:
 {% else %}
     - monit
 {% endif %}
-{% if grains['cloud'] is defined and not grains.cloud in [ 'aws', 'gce', 'vagrant' ] %}
+{% if grains['cloud'] is defined and not grains.cloud in [ 'aws', 'gce', 'vagrant', 'azure' ] %}
     - nginx
 {% endif %}
     - cadvisor
@@ -67,6 +67,8 @@ base:
     - kube-addons
 {% if grains['cloud'] is defined and grains['cloud'] == 'azure' %}
     - openvpn
+    - docker
+    - kubelet
 {% endif %}
 {% if grains['cloud'] is defined and grains['cloud'] in [ 'vagrant', 'gce', 'aws' ] %}
     - docker
